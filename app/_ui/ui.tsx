@@ -483,3 +483,70 @@ export default function QuoteDetailPage() {
     </PageShell>
   );
 }
+export function Button({
+  variant = "primary",
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: "primary" | "ghost" | "dangerOutline";
+}) {
+  const base: React.CSSProperties = {
+    height: 44,
+    padding: "0 14px",
+    borderRadius: UI.radiusSm,
+    cursor: props.disabled ? "not-allowed" : "pointer",
+    fontWeight: 950,
+    letterSpacing: -0.1,
+    opacity: props.disabled ? 0.7 : 1,
+    transition: "transform .05s, box-shadow .15s, filter .15s, background .15s",
+    userSelect: "none",
+  };
+
+  const styles: React.CSSProperties =
+    variant === "primary"
+      ? {
+          ...base,
+          border: `1px solid ${UI.danger}`,
+          background: UI.accent,
+          color: "#fff",
+          boxShadow: "0 10px 18px rgba(196,22,32,.18)",
+        }
+      : variant === "ghost"
+      ? {
+          ...base,
+          border: "1px solid rgba(255,255,255,.18)",
+          background: "rgba(255,255,255,0.06)",
+          color: "#fff",
+        }
+      : {
+          ...base,
+          border: `1px solid rgba(139,15,24,.35)`,
+          background: "#fff",
+          color: UI.danger,
+        };
+
+  return (
+    <button
+      {...props}
+      style={{ ...styles, ...(props.style ?? {}) }}
+      onMouseDown={(e) => {
+        if (props.disabled) return;
+        (e.currentTarget as HTMLButtonElement).style.transform = "translateY(1px)";
+        props.onMouseDown?.(e);
+      }}
+      onMouseUp={(e) => {
+        (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)";
+        props.onMouseUp?.(e);
+      }}
+      onMouseEnter={(e) => {
+        if (props.disabled) return;
+        (e.currentTarget as HTMLButtonElement).style.filter = "brightness(1.02)";
+        props.onMouseEnter?.(e);
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLButtonElement).style.filter = "none";
+        (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)";
+        props.onMouseLeave?.(e);
+      }}
+    />
+  );
+}
