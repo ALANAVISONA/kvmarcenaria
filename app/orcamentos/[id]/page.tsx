@@ -144,11 +144,15 @@ export default function QuoteDetailPage() {
   }, [quoteId]);
 
   const totalCalculado = useMemo(() => {
-    return items.reduce((acc, it) => {
-      const sub = Number(it.subtotal ?? Number(it.quantity) * Number(it.unit_price) ?? 0);
-      return acc + (Number.isFinite(sub) ? sub : 0);
-    }, 0);
-  }, [items]);
+  return items.reduce((acc, it) => {
+    const subtotal =
+      it.subtotal !== null && it.subtotal !== undefined
+        ? Number(it.subtotal)
+        : Number(it.quantity) * Number(it.unit_price);
+
+    return acc + (Number.isFinite(subtotal) ? subtotal : 0);
+  }, 0);
+}, [items]);
 
   const nomeCliente = useMemo(() => {
     const c = clients.find((x) => x.id === clientId);
@@ -404,7 +408,11 @@ export default function QuoteDetailPage() {
 
               {!loading &&
                 items.map((it) => {
-                  const subtotal = Number(it.subtotal ?? Number(it.quantity) * Number(it.unit_price) ?? 0);
+                  const subtotal =
+  it.subtotal !== null && it.subtotal !== undefined
+    ? Number(it.subtotal)
+    : Number(it.quantity) * Number(it.unit_price);
+
 
                   return (
                     <div
