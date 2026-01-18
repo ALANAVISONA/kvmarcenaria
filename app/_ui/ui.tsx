@@ -44,7 +44,7 @@ type QuoteItem = {
   unit_price: number;
   subtotal: number | null;
   created_at: string;
-  // ✅ supabase costuma retornar relacionamento como array
+  // ✅ Supabase costuma retornar relacionamento como array
   products?: { name: string; category: string | null }[] | null;
 };
 
@@ -61,7 +61,6 @@ function parseBRL(input: string) {
 
 function formatDateBR(iso: string | null | undefined) {
   if (!iso) return "";
-  // iso: yyyy-mm-dd
   const [y, m, d] = iso.split("-");
   if (!y || !m || !d) return "";
   return `${d}/${m}/${y}`;
@@ -121,7 +120,9 @@ export default function QuoteDetailPage() {
       supabase.from("products").select("id,name,category,description,price").order("name"),
       supabase
         .from("quote_items")
-        .select("id,quote_id,product_id,quantity,unit_price,subtotal,created_at, products(name,category)")
+        .select(
+          "id,quote_id,product_id,quantity,unit_price,subtotal,created_at, products(name,category)"
+        )
         .eq("quote_id", quoteId)
         .order("created_at", { ascending: true }),
     ]);
@@ -134,7 +135,8 @@ export default function QuoteDetailPage() {
 
     setClients((cRes.data as Client[]) ?? []);
     setProducts((pRes.data as Product[]) ?? []);
-    setItems((iRes.data as QuoteItem[]) ?? []); // ✅ agora bate com o tipo
+    // ✅ conversão segura pra evitar erro de TypeScript no build
+    setItems(((iRes.data ?? []) as unknown as QuoteItem[]));
   }
 
   useEffect(() => {
@@ -176,7 +178,6 @@ export default function QuoteDetailPage() {
 
     setAdding(true);
 
-    // subtotal é GENERATED no banco -> NÃO enviar subtotal
     const { error } = await supabase.from("quote_items").insert([
       { quote_id: quoteId, product_id: productId, quantity: q, unit_price: unitPrice },
     ]);
@@ -225,7 +226,7 @@ export default function QuoteDetailPage() {
     await carregarTudo();
   }
 
-  // ✅ montar objeto no formato do PDF
+  // ✅ dados pro PDF
   const dadosPDF = useMemo(() => {
     const numero = String(quote?.order_number ?? quoteId ?? "0000");
     const dataBR = quoteDate ? formatDateBR(quoteDate) : new Date().toLocaleDateString("pt-BR");
