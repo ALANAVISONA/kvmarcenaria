@@ -134,7 +134,7 @@ export default function QuoteDetailPage() {
 
     setClients((cRes.data as Client[]) ?? []);
     setProducts((pRes.data as Product[]) ?? []);
-    setItems((iRes.data as QuoteItem[]) ?? []);
+    setItems(((iRes.data ?? []) as unknown as QuoteItem[]));
   }
 
   useEffect(() => {
