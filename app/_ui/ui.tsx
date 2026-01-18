@@ -80,9 +80,7 @@ export function Topbar({
         />
 
         <div>
-          <div style={{ color: "rgba(255,255,255,.75)", fontSize: 13 }}>
-            KV Marcenaria
-          </div>
+          <div style={{ color: "rgba(255,255,255,.75)", fontSize: 13 }}>KV Marcenaria</div>
 
           <div
             style={{
@@ -104,9 +102,7 @@ export function Topbar({
         </div>
       </div>
 
-      {right ? (
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>{right}</div>
-      ) : null}
+      {right ? <div style={{ display: "flex", gap: 10, alignItems: "center" }}>{right}</div> : null}
     </div>
   );
 }
@@ -176,43 +172,56 @@ function fieldBaseStyle(extra?: React.CSSProperties): React.CSSProperties {
   };
 }
 
-export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      {...props}
-      style={fieldBaseStyle(props.style)}
-      onFocus={(e) => {
-        e.currentTarget.style.borderColor = UI.focusBorder;
-        e.currentTarget.style.boxShadow = UI.focusRing;
-        props.onFocus?.(e);
-      }}
-      onBlur={(e) => {
-        e.currentTarget.style.borderColor = "#d9d9df";
-        e.currentTarget.style.boxShadow = "none";
-        props.onBlur?.(e);
-      }}
-    />
-  );
-}
+/** INPUT com forwardRef (corrige erro do ref no build) */
+export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
+  function Input(props, ref) {
+    const { style, onFocus, onBlur, ...rest } = props;
 
-export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
+    return (
+      <input
+        ref={ref}
+        {...rest}
+        style={fieldBaseStyle(style)}
+        onFocus={(e) => {
+          e.currentTarget.style.borderColor = UI.focusBorder;
+          e.currentTarget.style.boxShadow = UI.focusRing;
+          onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.borderColor = "#d9d9df";
+          e.currentTarget.style.boxShadow = "none";
+          onBlur?.(e);
+        }}
+      />
+    );
+  }
+);
+
+/** SELECT com forwardRef (mantém padrão) */
+export const Select = React.forwardRef<
+  HTMLSelectElement,
+  React.SelectHTMLAttributes<HTMLSelectElement>
+>(function Select(props, ref) {
+  const { style, onFocus, onBlur, ...rest } = props;
+
   return (
     <select
-      {...props}
-      style={fieldBaseStyle(props.style)}
+      ref={ref}
+      {...rest}
+      style={fieldBaseStyle(style)}
       onFocus={(e) => {
         e.currentTarget.style.borderColor = UI.focusBorder;
         e.currentTarget.style.boxShadow = UI.focusRing;
-        props.onFocus?.(e);
+        onFocus?.(e);
       }}
       onBlur={(e) => {
         e.currentTarget.style.borderColor = "#d9d9df";
         e.currentTarget.style.boxShadow = "none";
-        props.onBlur?.(e);
+        onBlur?.(e);
       }}
     />
   );
-}
+});
 
 export function Button({
   variant = "primary",
