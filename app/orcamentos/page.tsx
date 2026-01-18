@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { PageShell, Topbar, Card, Label, Select, Input, Button, UI } from "@/app/_ui/ui";
 
 type Client = { id: string; name: string };
 
@@ -15,11 +16,26 @@ type Quote = {
   quote_date: string | null;
   created_at: string;
   order_number: number;
-  clients?: { name: string } | null;
+  clients?: { name: string }[] | null; // ✅ supabase pode vir como array
 };
 
 function brl(v: number) {
   return (v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function formatDateBR(iso: string | null) {
+  if (!iso) return "";
+  // se vier como yyyy-mm-dd (date)
+  if (iso.includes("-")) {
+    const [y, m, d] = iso.split("-");
+    if (y && m && d) return `${d}/${m}/${y}`;
+  }
+  // fallback
+  try {
+    return new Date(iso).toLocaleDateString("pt-BR");
+  } catch {
+    return iso;
+  }
 }
 
 export default function OrcamentosPage() {
@@ -27,7 +43,7 @@ export default function OrcamentosPage() {
 
   const [clients, setClients] = useState<Client[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
 
   const [clientId, setClientId] = useState("");
@@ -52,20 +68,17 @@ export default function OrcamentosPage() {
 
     setLoading(false);
 
-    if (cRes.error) return alert("Erro ao carregar clients: " + cRes.error.message);
-    if (qRes.error) return alert("Erro ao carregar quotes: " + qRes.error.message);
+    if (cRes.error) return alert("Erro ao carregar clientes: " + cRes.error.message);
+    if (qRes.error) return alert("Erro ao carregar orçamentos: " + qRes.error.message);
 
     setClients((cRes.data as Client[]) ?? []);
-    setQuotes((qRes.data as Quote[]) ?? []);
+    setQuotes(((qRes.data ?? []) as unknown as Quote[])); // ✅ evita briga do TS
   }
 
   async function criarOrcamento(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!clientId) {
-      alert("Selecione um cliente.");
-      return;
-    }
+    if (!clientId) return alert("Selecione um cliente.");
 
     setCreating(true);
 
@@ -77,12 +90,8 @@ export default function OrcamentosPage() {
 
     setCreating(false);
 
-    if (error) {
-      alert("Erro ao criar orçamento: " + error.message);
-      return;
-    }
+    if (error) return alert("Erro ao criar orçamento: " + error.message);
 
-    // se você ainda não criou a tela /orcamentos/[id], comente a linha abaixo:
     router.push(`/orcamentos/${data.id}`);
   }
 
@@ -98,164 +107,122 @@ export default function OrcamentosPage() {
 
     return quotes.filter((o) => {
       const num = String(o.order_number ?? "");
-      const cli = (o.clients?.name ?? "").toLowerCase();
+      const cli = (o.clients?.[0]?.name ?? "").toLowerCase();
       const st = (o.status ?? "").toLowerCase();
       return num.includes(q) || cli.includes(q) || st.includes(q);
     });
   }, [busca, quotes]);
 
   return (
-    <div style={{ maxWidth: 1500, margin: "18px auto", padding: 16 }}>
-      <div
-        style={{
-          borderRadius: 16,
-          background: "#fff",
-          border: "1px solid #e9e9ee",
-          boxShadow: "0 12px 30px rgba(0,0,0,.25)",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            padding: 16,
-            borderBottom: "1px solid #eee",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 12,
-          }}
-        >
-          <div>
-            <div style={{ fontSize: 14, color: "#6b7280" }}>Gerar orçamento</div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: "#111827" }}>Orçamentos</div>
+    <PageShell>
+      <Topbar
+        title="Orçamentos"
+        subtitle="Criar, listar e abrir orçamentos"
+        right={
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,.75)" }}>
+            {filtrados.length} orçamento(s)
           </div>
+        }
+      />
 
-          <div style={{ fontSize: 13, color: "#6b7280" }}>{filtrados.length} orçamento(s)</div>
-        </div>
-
-        <div style={{ padding: 16, display: "grid", gap: 12 }}>
+      <div style={{ marginTop: 14, display: "grid", gap: 14 }}>
+        <Card kicker="Gerar orçamento" title="Criar novo">
           <form
             onSubmit={criarOrcamento}
             style={{
               display: "grid",
-              gap: 10,
+              gap: 12,
               gridTemplateColumns: "1fr 260px 220px",
               alignItems: "end",
             }}
           >
             <div>
-              <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 6 }}>Cliente</div>
-              <select
-                value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: 12,
-                  border: "1px solid #d9d9df",
-                  borderRadius: 12,
-                }}
-              >
+              <Label>Cliente</Label>
+              <Select value={clientId} onChange={(e) => setClientId(e.target.value)} disabled={creating}>
                 <option value="">Selecione...</option>
                 {clients.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div>
-              <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 6 }}>Status</div>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: 12,
-                  border: "1px solid #d9d9df",
-                  borderRadius: 12,
-                }}
-              >
+              <Label>Status</Label>
+              <Select value={status} onChange={(e) => setStatus(e.target.value)} disabled={creating}>
                 <option value="Orçamento">Orçamento</option>
                 <option value="Análise">Análise</option>
                 <option value="Produção">Produção</option>
                 <option value="Montagem">Montagem</option>
                 <option value="Entregue">Entregue</option>
-              </select>
+              </Select>
             </div>
 
-            <button
-              type="submit"
-              disabled={creating}
-              style={{
-                padding: 12,
-                borderRadius: 12,
-                border: "1px solid #8b0f18",
-                cursor: creating ? "not-allowed" : "pointer",
-                background: "#c41620",
-                color: "#fff",
-                fontWeight: 900,
-                opacity: creating ? 0.7 : 1,
-              }}
-            >
+            <Button type="submit" disabled={creating}>
               {creating ? "Criando..." : "Criar orçamento"}
-            </button>
+            </Button>
           </form>
 
-          <div style={{ marginTop: 6 }}>
-            <input
+          <div style={{ marginTop: 12 }}>
+            <Label>Buscar</Label>
+            <Input
               placeholder="Buscar por número, cliente ou status..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              style={{
-                width: "100%",
-                padding: 12,
-                border: "1px solid #d9d9df",
-                borderRadius: 12,
-              }}
             />
           </div>
+        </Card>
 
-          <div style={{ border: "1px solid #eee", borderRadius: 14, overflow: "hidden" }}>
+        <Card
+          kicker="Lista"
+          title="Orçamentos recentes"
+          right={<div style={{ fontSize: 13, color: UI.muted }}>{loading ? "Carregando..." : ""}</div>}
+        >
+          <div style={{ border: `1px solid ${UI.line}`, borderRadius: 14, overflow: "hidden" }}>
             {loading && <div style={{ padding: 12, opacity: 0.7 }}>Carregando...</div>}
 
             {!loading &&
-              filtrados.map((o) => (
-                <Link
-                  key={o.id}
-                  href={`/orcamentos/${o.id}`}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    padding: 12,
-                    borderTop: "1px solid #f0f0f4",
-                    background: "#fff",
-                    textDecoration: "none",
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 900, color: "#111827" }}>
-                      Orçamento #{o.order_number} — {o.clients?.name ?? "Cliente"}
+              filtrados.map((o, idx) => {
+                const cliente = o.clients?.[0]?.name ?? "Cliente";
+                const data = o.quote_date ? formatDateBR(o.quote_date) : "";
+                return (
+                  <Link
+                    key={o.id}
+                    href={`/orcamentos/${o.id}`}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      padding: 14,
+                      borderTop: idx === 0 ? "none" : "1px solid #f0f0f4",
+                      background: "linear-gradient(180deg, #ffffff 0%, #fbfbfd 100%)",
+                      textDecoration: "none",
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 950, color: UI.text, fontSize: 16, lineHeight: 1.2 }}>
+                        Orçamento #{o.order_number} — {cliente}
+                      </div>
+                      <div style={{ fontSize: 12.5, color: UI.muted, marginTop: 6 }}>
+                        Status: <b style={{ color: UI.text }}>{o.status}</b>
+                        {data ? ` • Data: ${data}` : ""}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 13, color: "#6b7280" }}>
-                      Status: {o.status}
-                      {o.quote_date
-                        ? ` • Data: ${new Date(o.quote_date).toLocaleDateString("pt-BR")}`
-                        : ""}
-                    </div>
-                  </div>
 
-                  <div style={{ fontWeight: 900, color: "#111827" }}>{brl(o.total ?? 0)}</div>
-                </Link>
-              ))}
+                    <div style={{ fontWeight: 950, color: UI.text, whiteSpace: "nowrap" }}>
+                      {brl(o.total ?? 0)}
+                    </div>
+                  </Link>
+                );
+              })}
 
             {!loading && filtrados.length === 0 && (
               <div style={{ padding: 12, opacity: 0.7 }}>Nenhum orçamento encontrado.</div>
             )}
           </div>
-        </div>
+        </Card>
       </div>
-    </div>
+    </PageShell>
   );
 }
